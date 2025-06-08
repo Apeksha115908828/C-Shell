@@ -7,11 +7,13 @@ int main(int argc, char *argv[]) {
   setbuf(stdout, NULL);
 
   // Uncomment this block to pass the first stage
-  printf("$ ");
+  // printf("$ ");
 
   // Wait for user input
   char input[100];
   while(1) {
+
+    printf("$ ");
     fgets(input, 100, stdin);
     // Remove the trailing newline
     input[strlen(input) - 1] = '\0';
