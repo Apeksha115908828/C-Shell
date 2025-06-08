@@ -11,6 +11,8 @@ int main(int argc, char *argv[]) {
 
   // Wait for user input
   char input[100];
+
+  char builtins[2][10] = {"echo", "exit"};
   while(1) {
 
     printf("$ ");
@@ -29,6 +31,20 @@ int main(int argc, char *argv[]) {
     if(strncmp(input, "echo ", 5) == 0) {
       printf("%s\n", input + 5);
       continue;
+    }
+    // type command
+    // If the input starts with "type ", print the rest of the input
+    if(strncmp(input, "type ", 5) == 0) {
+      if(argc < 2) {
+        printf("Usage: %s <filename>\n", argv[0]);
+        continue;
+      }
+      for(int i=0; i<2; i++) {
+        if(strcmp(input + 5, builtins[i]) == 0) {
+          printf("%s is a built-in command\n", builtins[i]);
+          continue;
+        }
+      }
     }
     printf("%s: command not found\n", input);
   }
