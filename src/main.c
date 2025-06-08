@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
     // Remove the trailing newline
     input[strlen(input) - 1] = '\0';
     // Print the input back to the user
-    if(strcmp(input, "exit") == 0) {
+    if(strncmp(input, "exit", 4) == 0) {
       printf("Exiting...\n");
       break;
     }
