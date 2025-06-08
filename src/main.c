@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     input[strlen(input) - 1] = '\0';
     // Print the input back to the user
     if(strncmp(input, "exit", 4) == 0) {
-      printf("Exiting...\n");
+      // printf("Exiting...\n");
       break;
     }
 
