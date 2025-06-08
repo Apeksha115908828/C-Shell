@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 #define MAX_BUFFER_SIZE 128
 #define NUM_BUILTINS 3
 char *builtins[NUM_BUILTINS] = {"echo", "exit", "type"};
@@ -19,10 +20,34 @@ InputBuffer CreateInputBuffer() {
   buffer.is_valid = false;
   return buffer;
 }
+
+void search_builtin(const char* command) {
+  char *path = getenv("PATH");
+  char *path_copy = strdup(path);
+  bool found = false;
+  char *dir = strtok(path_copy, ":");
+  
+  while (dir != NULL && !found) {
+    char full_path[1000];
+    snprintf(full_path, sizeof(full_path), "%s/%s", dir, command);
+
+    // Check if it is accessible
+    if (access(full_path, X_OK) == 0) {
+      printf("%s is %s\n", command, full_path);
+      found = true;
+    }
+    // Get the next token
+    dir = strtok(NULL, ":");
+  }
+  if (!found) {
+    printf("%s: not found\n", command);
+  }
+  free(path_copy);
+}
+
 bool process_input(InputBuffer *input_buffer) {
   char *command = strtok(input_buffer->input, " ");
   input_buffer->input[input_buffer->input_length - 1] = '\0'; // Remove the trailing newline
-
   if(strncmp(command, "exit", 4) == 0) {
     input_buffer->is_valid = true;
     exit(EXIT_SUCCESS);
@@ -43,6 +68,10 @@ bool process_input(InputBuffer *input_buffer) {
     printf("%s: not found\n", command2);
     input_buffer->is_valid = true;
     return true;
+  } else {
+    // not a buildin command
+    search_builtin(command);
+
   }
   return false;
 }
