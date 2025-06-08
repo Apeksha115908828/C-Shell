@@ -21,12 +21,15 @@ InputBuffer CreateInputBuffer() {
   return buffer;
 }
 
-void search_builtin(const char* command) {
+bool search_builtin(const char* command) {
   char *path = getenv("PATH");
+  if (path == NULL) {
+    printf("%s: not found\n", command);
+    return false;
+  }
   char *path_copy = strdup(path);
   bool found = false;
   char *dir = strtok(path_copy, ":");
-  
   while (dir != NULL && !found) {
     char full_path[1000];
     snprintf(full_path, sizeof(full_path), "%s/%s", dir, command);
@@ -39,10 +42,11 @@ void search_builtin(const char* command) {
     // Get the next token
     dir = strtok(NULL, ":");
   }
-  if (!found) {
-    printf("%s: not found\n", command);
-  }
+  // if (!found) {
+  //   printf("%s: not found\n", command);
+  // }
   free(path_copy);
+  return found;
 }
 
 bool process_input(InputBuffer *input_buffer) {
@@ -64,14 +68,16 @@ bool process_input(InputBuffer *input_buffer) {
         return true;
       }
     }
+    // not a buildin command
+    if(search_builtin(command2)) {
+      input_buffer->is_valid = true;
+      return true;
+    }
+    
     // If we reach here, the command is not a builtin
     printf("%s: not found\n", command2);
     input_buffer->is_valid = true;
     return true;
-  } else {
-    // not a buildin command
-    search_builtin(command);
-
   }
   return false;
 }
