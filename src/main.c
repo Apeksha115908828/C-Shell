@@ -51,7 +51,6 @@ bool search_builtin(const char* command) {
 
 bool process_input(InputBuffer *input_buffer) {
   char *command = strtok(input_buffer->input, " ");
-  input_buffer->input[input_buffer->input_length - 1] = '\0'; // Remove the trailing newline
   if(strncmp(command, "exit", 4) == 0) {
     input_buffer->is_valid = true;
     exit(EXIT_SUCCESS);
@@ -97,8 +96,9 @@ int main(int argc, char *argv[]) {
     
     fgets(input_buffer.input, MAX_BUFFER_SIZE, stdin);
     // Remove the trailing newline
-    input[strlen(input) - 1] = '\0';
+    // input[strlen(input) - 1] = '\0';
     input_buffer.input_length = strlen(input_buffer.input);
+    input_buffer.input[input_buffer.input_length - 1] = '\0'; // Remove the trailing newline
     input_buffer.is_valid = false;
 
     // Print the input back to the user
