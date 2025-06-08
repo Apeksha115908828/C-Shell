@@ -18,6 +18,10 @@ int main(int argc, char *argv[]) {
     // Remove the trailing newline
     input[strlen(input) - 1] = '\0';
     // Print the input back to the user
+    if(strcmp(input, "exit") == 0) {
+      printf("Exiting...\n");
+      break;
+    }
     printf("%s: command not found\n", input);
   }
   return 0;
