@@ -22,6 +22,14 @@ int main(int argc, char *argv[]) {
       printf("Exiting...\n");
       break;
     }
+
+    // handling the commands
+    // echo command
+    // If the input starts with "echo ", print the rest of the input
+    if(strncmp(input, "echo ", 5) == 0) {
+      printf("%s\n", input + 5);
+      continue;
+    }
     printf("%s: command not found\n", input);
   }
   return 0;
