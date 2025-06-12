@@ -6,8 +6,9 @@
 // #include <sys/types.h>
 #include <sys/wait.h>
 #define MAX_BUFFER_SIZE 128
-#define NUM_BUILTINS 3
-char *builtins[NUM_BUILTINS] = {"echo", "exit", "type"};
+#define NUM_BUILTINS 4
+#define PATH_MAX 100
+char *builtins[NUM_BUILTINS] = {"echo", "exit", "type", "pwd"};
 
 typedef struct {
   char *input;
@@ -83,10 +84,12 @@ bool process_input(InputBuffer *input_buffer, char *command) {
     printf("%s: not found\n", command2);
     input_buffer->is_valid = true;
     return true;
-  } else if(command == "pwd") {
+  } else if(strcmp(command, "pwd") == 0) {
     char cwd[PATH_MAX];
     if(getcwd(cwd, sizeof(cwd)) != NULL) {
       printf("%s\n", cwd);
+      input_buffer->is_valid = true;
+      return true;
     }
   }
   return false;
