@@ -83,6 +83,11 @@ bool process_input(InputBuffer *input_buffer, char *command) {
     printf("%s: not found\n", command2);
     input_buffer->is_valid = true;
     return true;
+  } else if(command == "pwd") {
+    char cwd[PATH_MAX];
+    if(getcwd(cwd, sizeof(cwd)) != NULL) {
+      printf("%s\n", cwd);
+    }
   }
   return false;
 }
