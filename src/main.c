@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
+// #include <sys/types.h>
+#include <sys/wait.h>
 #define MAX_BUFFER_SIZE 128
 #define NUM_BUILTINS 3
 char *builtins[NUM_BUILTINS] = {"echo", "exit", "type"};
@@ -49,8 +51,12 @@ bool search_builtin(const char* command) {
   return found;
 }
 
-bool process_input(InputBuffer *input_buffer) {
-  char *command = strtok(input_buffer->input, " ");
+bool process_input(InputBuffer *input_buffer, char *command) {
+  if(command == NULL) {
+    input_buffer->is_valid = true; // No command entered, mark as valid
+    return true;
+  }
+  
   if(strncmp(command, "exit", 4) == 0) {
     input_buffer->is_valid = true;
     exit(EXIT_SUCCESS);
@@ -97,43 +103,83 @@ int main(int argc, char *argv[]) {
     fgets(input_buffer.input, MAX_BUFFER_SIZE, stdin);
     // Remove the trailing newline
     // input[strlen(input) - 1] = '\0';
+    // printf("Input: %s\n strlen()=%d", input_buffer.input, strlen(input_buffer.input)); // Debugging line to see the input
     input_buffer.input_length = strlen(input_buffer.input);
     input_buffer.input[input_buffer.input_length - 1] = '\0'; // Remove the trailing newline
     input_buffer.is_valid = false;
+    
+    char *command = strtok(input_buffer.input, " ");
 
-    // Print the input back to the user
-    // if(strncmp(input, "exit", 4) == 0) {
-    //   // printf("Exiting...\n");
-    //   break;
-    // }
-
-    // // handling the commands
-    // // echo command
-    // // If the input starts with "echo ", print the rest of the input
-    // if(strncmp(input, "echo ", 5) == 0) {
-    //   printf("%s\n", input + 5);
-    //   continue;
-    // }
-    // // type command
-    // // If the input starts with "type ", print the rest of the input
-    // if(strncmp(input, "type ", 5) == 0) {
-    //   // if(argc < 2) {
-    //   //   printf("Usage: %s <filename>\n", argv[0]);
-    //   //   continue;
-    //   // }
-    //   for(int i=0; i<2; i++) {
-    //     if(strcmp(input + 5, builtins[i]) == 0) {
-    //       printf("%s is a shell builtin\n", builtins[i]);
-    //       continue;
-    //     }
-    //   }
-    // }
-    // printf("%s: command not found\n", input);
-    process_input(&input_buffer);
+    process_input(&input_buffer, command);
     if(!input_buffer.is_valid) {
-      printf("%s: command not found\n", input_buffer.input);
+      // Parse the input into arguments
+      char *args[MAX_BUFFER_SIZE / 2 + 1];    // considering string/argument length atleast 2 characters
+      int arg_count = 1;
+      args[0] = command; // First argument is the command itself
+      // char *token = strtok(input_buffer.input, " ");
+      char* token = strtok(NULL, " ");
+      while(token != NULL && arg_count < (MAX_BUFFER_SIZE / 2)) {
+        
+        args[arg_count] = token;
+        arg_count++;
+        // printf("Token: %s\n", token); // Debugging line to see the tokens
+        // printf("input_buffer.input: %s\n", input_buffer.input); // Debugging line to see the input buffer
+        token = strtok(NULL, " ");
+      }
+      // printf("Number of arguments: %d\n", arg_count); // Debugging line to see the number of arguments
+      args[arg_count] = NULL; // Null-terminate the array of arguments
+
+      if(args[0] == NULL) {
+        printf("$ ");
+        continue; // No command entered, prompt again
+      }
+      pid_t pid = fork();
+      if(pid == 0) {
+        // Child Process
+        execvp(args[0], args);
+        printf("%s: command not found\n", args[0]);
+        exit(EXIT_FAILURE); // Exit child process if exec fails
+      } else if(pid > 0) {
+        // Parent Process
+        int status;
+        waitpid(pid, &status, 0);
+      } else {
+        perror("fork");
+      }
+
+      // printf("%s: command not found\n", input_buffer.input);
     }
     printf("$ ");
   }
   return 0;
 }
+
+
+// Print the input back to the user
+// if(strncmp(input, "exit", 4) == 0) {
+//   // printf("Exiting...\n");
+//   break;
+// }
+
+// // handling the commands
+// // echo command
+// // If the input starts with "echo ", print the rest of the input
+// if(strncmp(input, "echo ", 5) == 0) {
+//   printf("%s\n", input + 5);
+//   continue;
+// }
+// // type command
+// // If the input starts with "type ", print the rest of the input
+// if(strncmp(input, "type ", 5) == 0) {
+//   // if(argc < 2) {
+//   //   printf("Usage: %s <filename>\n", argv[0]);
+//   //   continue;
+//   // }
+//   for(int i=0; i<2; i++) {
+//     if(strcmp(input + 5, builtins[i]) == 0) {
+//       printf("%s is a shell builtin\n", builtins[i]);
+//       continue;
+//     }
+//   }
+// }
+// printf("%s: command not found\n", input);
