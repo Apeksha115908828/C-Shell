@@ -99,7 +99,7 @@ bool process_input(InputBuffer *input_buffer, char *command) {
     }
   } else if(strcmp(command, "cd") == 0) {
     char *path = strtok(NULL, "");
-    if(path == NULL) {
+    if(path == NULL || strcmp(path, "~") == 0) {
       // should go to home path
       chdir(getenv("HOME"));
       input_buffer->is_valid = true;
