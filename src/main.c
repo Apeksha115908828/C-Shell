@@ -52,6 +52,27 @@ bool search_builtin(const char* command) {
   return found;
 }
 
+bool is_valid(char* path, int path_len) {
+
+}
+
+void handleType(InputBuffer *input_buffer) {
+  char *command2 = strtok(NULL, "");
+  for(int i=0; i<NUM_BUILTINS; i++) {
+    if(strncmp(command2, builtins[i], strlen(command2)) == 0) {
+      printf("%s is a shell builtin\n", builtins[i]);
+      return;
+    }
+  }
+  // not a buildin command
+  if(search_builtin(command2)) {
+    return;
+  }
+  
+  // If we reach here, the command is not a builtin
+  printf("%s: not found\n", command2);
+}
+
 bool process_input(InputBuffer *input_buffer, char *command) {
   if(command == NULL) {
     input_buffer->is_valid = true; // No command entered, mark as valid
@@ -66,22 +87,7 @@ bool process_input(InputBuffer *input_buffer, char *command) {
     printf("%s\n", input_buffer->input + strlen(command) + 1); // +1 to skip the space after "echo"
     return true;
   } else if(strncmp(command, "type", 4) == 0) {
-    char *command2 = strtok(NULL, "");
-    for(int i=0; i<NUM_BUILTINS; i++) {
-      if(strncmp(command2, builtins[i], strlen(command2)) == 0) {
-        printf("%s is a shell builtin\n", builtins[i]);
-        input_buffer->is_valid = true;
-        return true;
-      }
-    }
-    // not a buildin command
-    if(search_builtin(command2)) {
-      input_buffer->is_valid = true;
-      return true;
-    }
-    
-    // If we reach here, the command is not a builtin
-    printf("%s: not found\n", command2);
+    handleType(input_buffer);
     input_buffer->is_valid = true;
     return true;
   } else if(strcmp(command, "pwd") == 0) {
@@ -91,6 +97,19 @@ bool process_input(InputBuffer *input_buffer, char *command) {
       input_buffer->is_valid = true;
       return true;
     }
+  } else if(strcmp(command, "cd") == 0) {
+    char *path = strtok(NULL, "");
+    if(path == NULL) {
+      // should go to home path
+      chdir(getenv("HOME"));
+      input_buffer->is_valid = true;
+      return true;
+    }
+    if(chdir(path) != 0) {
+      printf("cd: %s: No such file or directory\n", path);
+    }
+    input_buffer->is_valid = true;
+    return true;
   }
   return false;
 }
