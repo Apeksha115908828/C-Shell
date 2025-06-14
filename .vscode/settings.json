@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "*.da": "python",
+    "__locale": "c",
+    "bitset": "c"
+  }
+}

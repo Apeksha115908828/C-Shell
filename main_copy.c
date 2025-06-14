@@ -53,6 +53,10 @@ bool search_builtin(const char* command) {
   return found;
 }
 
+bool is_valid(char* path, int path_len) {
+
+}
+
 void handleType() {
   char *command2 = strtok(NULL, "");
   for(int i=0; i<NUM_BUILTINS; i++) {
@@ -70,24 +74,35 @@ void handleType() {
   printf("%s: not found\n", command2);
 }
 bool process_input(char* input_buffer, char* command) {
+  // char *command = strtok(input_buffer, " ");
+  // printf("input_buffer = %s command = %s", input_buffer, command);
+// bool process_input(InputBuffer *input_buffer, char *command) {
   if(command == NULL) {
+    // input_buffer->is_valid = true; // No command entered, mark as valid
     return true;
   }
   
   if(strncmp(command, "exit", 4) == 0) {
+    // input_buffer->is_valid = true;
     exit(EXIT_SUCCESS);
   } else if(strncmp(command, "echo", 4) == 0) {
+    // input_buffer->is_valid = true;
+    // printf("%s\n", input_buffer + strlen(command) + 1); // +1 to skip the space after "echo"
     char *echo_text = input_buffer + strlen(command);
     while (*echo_text == ' ') echo_text++;
     printf("%s\n", echo_text);
     return true;
+    // printf("executed echo");
+    return true;
   } else if(strncmp(command, "type", 4) == 0) {
     handleType();
+    // input_buffer->is_valid = true;
     return true;
   } else if(strcmp(command, "pwd") == 0) {
     char cwd[PATH_MAX];
     if(getcwd(cwd, sizeof(cwd)) != NULL) {
       printf("%s\n", cwd);
+      // input_buffer->is_valid = true;
       return true;
     }
   } else if(strcmp(command, "cd") == 0) {
@@ -95,13 +110,16 @@ bool process_input(char* input_buffer, char* command) {
     if(path == NULL || strcmp(path, "~") == 0) {
       // should go to home path
       chdir(getenv("HOME"));
+      // input_buffer->is_valid = true;
       return true;
     }
     if(chdir(path) != 0) {
       printf("cd: %s: No such file or directory\n", path);
     }
+    // input_buffer->is_valid = true;
     return true;
   }
+  // printf("returning false for command = %s", command);
   return false;
 }
 
@@ -138,13 +156,20 @@ char** getPipedCommands(char* input_buffer, int *num_cmds) {
 }
 
 void processCommands(char *input_buffer, bool toFork) {
+  // printf("processCommands = %s\n", input_buffer);
+  // process_input(&input_buffer, command);
+  // if(!input_buffer.is_valid) {
   char *input_copy = strdup(input_buffer);  // safe, modifiable copy
   char *command = strtok(input_copy, " ");
-  if(!process_input(input_buffer, command)) {    
+  // char *command = strtok(input_buffer, " ",);
+  if(!process_input(input_buffer, command)) {
+    // printf("came to fork and execute....%s", input_buffer);
+    
     // Parse the input into arguments
     char *args[MAX_BUFFER_SIZE / 2 + 1];    // considering string/argument length atleast 2 characters
     int arg_count = 1;
     args[0] = command; // First argument is the command itself
+    // char *token = strtok(input_buffer.input, " ");
     char* token = strtok(NULL, " ");
     while(token != NULL && arg_count < (MAX_BUFFER_SIZE / 2)) {
       args[arg_count] = token;
@@ -154,6 +179,8 @@ void processCommands(char *input_buffer, bool toFork) {
     args[arg_count] = NULL; // Null-terminate the array of arguments
 
     if(args[0] == NULL) {
+      // printf("$ ");
+      // continue; // No command entered, prompt again
       free(input_copy);
       return;
     }
@@ -189,9 +216,15 @@ int main(int argc, char *argv[]) {
 
   // Wait for user input
   char input[100];
+
+  
   InputBuffer input_buffer = CreateInputBuffer();
   while(1) {
+    
     fgets(input_buffer.input, MAX_BUFFER_SIZE, stdin);
+    // Remove the trailing newline
+    // input[strlen(input) - 1] = '\0';
+    // printf("Input: %s\n strlen()=%d", input_buffer.input, strlen(input_buffer.input)); // Debugging line to see the input
     input_buffer.input_length = strlen(input_buffer.input);
     input_buffer.input[input_buffer.input_length - 1] = '\0'; // Remove the trailing newline
     input_buffer.is_valid = false;
@@ -199,111 +232,89 @@ int main(int argc, char *argv[]) {
     if(strchr(input_buffer.input, '|') != NULL) {
       int num_cmds = 0;
       char **commands = getPipedCommands(input_buffer.input, &num_cmds);
-      int pipefd[2], prev_fd = -1;
-      for(int i=0; i<num_cmds; i++) {
-        if (i < num_cmds - 1) {
-          if (pipe(pipefd) < 0) {
-            perror("pipe failed");
-            exit(1);
-          }
-        }
-        pid_t pid = fork();
-        if(pid == 0) {
-          // if not first command, read from the pipe
-          if(prev_fd != -1) {
-            dup2(prev_fd, STDIN_FILENO);
-            close(prev_fd);
-          }
-          // if not the last command, write to the pipe
-          if(i != num_cmds-1) {
-            dup2(pipefd[1], STDOUT_FILENO);
-            close(pipefd[0]);
-            close(pipefd[1]);
-          }
-          processCommands(commands[i], false);
-          exit(0);  // check if its needed
-        }
-        // parent, clean up
-        if(prev_fd != -1) {
-          close(prev_fd);
-        }
-        if(i != num_cmds-1) {
-          close(pipefd[1]);
-          prev_fd = pipefd[0];
+      // printf("num_cmds = %d", num_cmds);
+      // for(int i=0; i<num_cmds; i++) {
+      //   printf("cmd[%d] = %s", i, commands[i]);
+      // }
+      int pipefd[2 * (num_cmds-1)];
+      //create the necessary pipes, num_cmds-1
+      for(int i=0; i<num_cmds-1; i++) {
+        if(pipe(pipefd + i*2) < 0) {
+          perror("pipe");
+          exit(EXIT_FAILURE);
         }
       }
+
+      // now fork the processes
+      for(int i=0; i<num_cmds; i++) {
+        // printf("forking for comd[%d] = %s\n", i, commands[i]);
+        pid_t pid = fork();
+        if(pid == 0) {
+          // child process
+          if(i != 0) {
+            dup2(pipefd[(i - 1)*2], STDIN_FILENO);
+          }
+          if(i != num_cmds-1) {
+            dup2(pipefd[i*2 + 1], STDOUT_FILENO);
+          }
+
+          //closing all the pipes
+          for(int j=0; j<(num_cmds-1)*2; j++) {
+            close(pipefd[j]);
+          }
+
+          // call the actual execution with commands[i]
+          // printf("calling process comand for i=%d\n", i);
+          processCommands(commands[i], false);
+        }
+      }
+
+      // closing all the pipes in the parent
+      for(int i=0; i<(num_cmds-1)*2; i++) {
+        close(pipefd[i]);
+      }
+
       // wait for all the children
       for(int i=0; i<num_cmds; i++) {
         wait(NULL);
       }
     } else {
+      // printf("came here......");
       processCommands(input_buffer.input, true);
-    }    
+    }
+    
+    
     printf("$ ");
   }
   return 0;
 }
 
 
-// int pipefd[2 * (num_cmds-1)];
-//       //create the necessary pipes, num_cmds-1
-//       for(int i=0; i<num_cmds-1; i++) {
-//         if(pipe(pipefd + i * 2) < 0) {
-//           perror("pipe");
-//           exit(EXIT_FAILURE);
-//         }
-//       }
-//       printf("start loop for calling fork for the piped commands num = %d\n", num_cmds);
-//       // now fork the processes
-//       for(int i=0; i<num_cmds; i++) {
-//         printf("fork count = %d\n", i);
-//         pid_t pid = fork();
-//         if(pid == 0) {
-//           printf("in child process for i=%d\n", i);
-//           // child process
-//           if(i != 0) {
-//             // dup2(pipefd[(i - 1)*2], STDIN_FILENO);
-//             printf("stdin calling dup2 for i = %d\n", i);
-//             if (dup2(pipefd[(i - 1) * 2], STDIN_FILENO) == -1) {
-//               // perror("dup2 stdin");
-//               printf("error in stdin dup2 for i=%d\n", i);
-//               // exit(EXIT_FAILURE);
-//             }
-//             // close(pipefd[(i - 1) * 2]); // close after dup2
-//             printf("dup2 returned for i = %d\n", i);
-//           }
-//           if(i != num_cmds-1) {
-//             printf("stdout calling dup2 for i = %d\n", i);
-//             fflush(stdout);
-//             if (dup2(pipefd[i * 2 + 1], STDOUT_FILENO) == -1) {
-//               perror("dup2 stdout");
-//               printf("error in stdout dup2 for i=%d\n", i);
-//               // exit(EXIT_FAILURE);
-//             }
-//             // close(pipefd[i * 2 + 1]); // close after dup2
-//             printf("dup2 returned for i = %d\n", i);
-//           }
-//           printf("get past the duplication command for i=%d\n", i);
-//           //closing all the pipes
-//           for(int j=0; j<(num_cmds-1)*2; j++) {
-//             if(j != (i * 2 + 1) && j != ((i - 1) * 2)) {
-//               printf("calling close pipe for i=%d j=%d\n", i, j);
-//               close(pipefd[j]);
-//             }
-//             // close(pipefd[j]);
-//           }
+// Print the input back to the user
+// if(strncmp(input, "exit", 4) == 0) {
+//   // printf("Exiting...\n");
+//   break;
+// }
 
-//           // call the actual execution with commands[i]
-//           processCommands(commands[i], false);
-//         }
-//       }
-
-//       // closing all the pipes in the parent
-//       for(int i=0; i<(num_cmds-1)*2; i++) {
-//         close(pipefd[i]);
-//       }
-
-//       // wait for all the children
-//       for(int i=0; i<num_cmds; i++) {
-//         wait(NULL);
-//       }
+// // handling the commands
+// // echo command
+// // If the input starts with "echo ", print the rest of the input
+// if(strncmp(input, "echo ", 5) == 0) {
+//   printf("%s\n", input + 5);
+//   continue;
+// }
+// // type command
+// // If the input starts with "type ", print the rest of the input
+// if(strncmp(input, "type ", 5) == 0) {
+//   // if(argc < 2) {
+//   //   printf("Usage: %s <filename>\n", argv[0]);
+//   //   continue;
+//   // }
+//   for(int i=0; i<2; i++) {
+//     if(strcmp(input + 5, builtins[i]) == 0) {
+//       printf("%s is a shell builtin\n", builtins[i]);
+//       continue;
+//     }
+//   }
+// }
+// printf("%s: command not found\n", input);
