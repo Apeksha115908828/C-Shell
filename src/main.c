@@ -262,7 +262,7 @@ int main(int argc, char *argv[]) {
     strcpy(input_buffer.input, line);
     input_buffer.input_length = strlen(line);
     // input_buffer.input_length = strlen(input_buffer.input);
-    input_buffer.input[input_buffer.input_length] = '\0'; // Remove the trailing newline
+    // input_buffer.input[input_buffer.input_length] = '\0'; // Remove the trailing newline
     input_buffer.is_valid = false;
     history[history_index] = malloc(input_buffer.input_length * sizeof(char));
     strcpy(history[history_index++], input_buffer.input);
