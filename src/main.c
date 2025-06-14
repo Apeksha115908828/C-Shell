@@ -10,9 +10,14 @@
 #define MAX_BUFFER_SIZE 128
 #define NUM_BUILTINS 6
 #define CMD_PATH_MAX 100
-#define MAX_COMMANDS 100
+#define MAX_COMMANDS 100    // piped commands
+#define MAX_COMMAND_LENGTH 50
+#define MAX_HISTORY_COMMANDS 100
+#define min(a, b) ((a) < (b) ? (a) : (b))
 
+int history_index = 0;
 char *builtins[NUM_BUILTINS] = {"echo", "exit", "type", "pwd", "cd", "history"};
+char **history;
 
 typedef struct {
   char *input;
@@ -99,6 +104,19 @@ bool process_input(char* input_buffer, char* command) {
     }
     if(chdir(path) != 0) {
       printf("cd: %s: No such file or directory\n", path);
+    }
+    return true;
+  } else if(strncmp(command, "history", 7) == 0) {
+    char *path = strtok(NULL, "");
+    if(path == NULL) {
+      for(int i=0; i<history_index; i++) {
+        printf("%d %s\n", i+1, history[i]);
+      }
+    } else {
+      int num_hist = atoi(path);
+      for(int i=0; i<min(history_index, num_hist); i++) {
+        printf("%d %s\n", i+1, history[i]);
+      }
     }
     return true;
   }
@@ -188,6 +206,8 @@ void processCommands(char *input_buffer, bool toFork) {
 int main(int argc, char *argv[]) {
   // Flush after every printf
   setbuf(stdout, NULL);
+  
+  history = malloc(MAX_HISTORY_COMMANDS * sizeof(char*));
 
   // Uncomment this block to pass the first stage
   printf("$ ");
@@ -200,7 +220,8 @@ int main(int argc, char *argv[]) {
     input_buffer.input_length = strlen(input_buffer.input);
     input_buffer.input[input_buffer.input_length - 1] = '\0'; // Remove the trailing newline
     input_buffer.is_valid = false;
-
+    history[history_index] = malloc(input_buffer.input_length * sizeof(char));
+    strcpy(history[history_index++], input_buffer.input);
     if(strchr(input_buffer.input, '|') != NULL) {
       int num_cmds = 0;
       char **commands = getPipedCommands(input_buffer.input, &num_cmds);
