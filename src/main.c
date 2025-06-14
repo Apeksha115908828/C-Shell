@@ -14,6 +14,7 @@
 #define MAX_COMMAND_LENGTH 50
 #define MAX_HISTORY_COMMANDS 100
 #define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
 
 int history_index = 0;
 char *builtins[NUM_BUILTINS] = {"echo", "exit", "type", "pwd", "cd", "history"};
@@ -114,7 +115,7 @@ bool process_input(char* input_buffer, char* command) {
       }
     } else {
       int num_hist = atoi(path);
-      for(int i=0; i<min(history_index, num_hist); i++) {
+      for(int i=max(history_index - num_hist, 0); i<history_index; i++) {
         printf("%d %s\n", i+1, history[i]);
       }
     }
