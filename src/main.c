@@ -7,6 +7,10 @@
 #include <sys/wait.h>
 #include <ctype.h>
 
+#include <readline/readline.h>
+#include <readline/history.h>
+// #include <readline/keymaps.h>
+
 #define MAX_BUFFER_SIZE 128
 #define NUM_BUILTINS 6
 #define CMD_PATH_MAX 100
@@ -204,25 +208,65 @@ void processCommands(char *input_buffer, bool toFork) {
   }
   free(input_copy);
 }
+
+int hist_cursor = -1;  // -1 means at newest line (empty)
+
+int my_up_arrow_handler(int count, int key) {
+  if (history_index == 0) return 0;  // no history
+
+  if (hist_cursor == -1)
+    hist_cursor = history_index - 1;
+  else if (hist_cursor > 0)
+    hist_cursor--;
+
+  rl_replace_line(history[hist_cursor], 1);
+  rl_point = rl_end;
+  return 0;
+}
+
+int my_down_arrow_handler(int count, int key) {
+  if (hist_cursor == -1) return 0;
+
+  hist_cursor++;
+  if (hist_cursor >= history_index) {
+    hist_cursor = -1;
+    rl_replace_line("", 0);
+  } else {
+    rl_replace_line(history[hist_cursor], 1);
+  }
+  rl_point = rl_end;
+  return 0;
+}
+
 int main(int argc, char *argv[]) {
   // Flush after every printf
   setbuf(stdout, NULL);
+  int curr_hist_ind = 0;
   
   history = malloc(MAX_HISTORY_COMMANDS * sizeof(char*));
 
   // Uncomment this block to pass the first stage
-  printf("$ ");
+  // printf("$ ");
 
   // Wait for user input
   char input[100];
-  InputBuffer input_buffer = CreateInputBuffer();
+  rl_bind_keyseq("\\e[A", my_up_arrow_handler);
+  rl_bind_keyseq("\\e[B", my_down_arrow_handler);
   while(1) {
-    fgets(input_buffer.input, MAX_BUFFER_SIZE, stdin);
-    input_buffer.input_length = strlen(input_buffer.input);
-    input_buffer.input[input_buffer.input_length - 1] = '\0'; // Remove the trailing newline
+    InputBuffer input_buffer = CreateInputBuffer();
+    // fgets(input_buffer.input, MAX_BUFFER_SIZE, stdin);
+    char *line = readline("$ ");
+    if (line == NULL) {
+      break;  // Ctrl+D
+    }
+    strcpy(input_buffer.input, line);
+    input_buffer.input_length = strlen(line);
+    // input_buffer.input_length = strlen(input_buffer.input);
+    input_buffer.input[input_buffer.input_length] = '\0'; // Remove the trailing newline
     input_buffer.is_valid = false;
     history[history_index] = malloc(input_buffer.input_length * sizeof(char));
     strcpy(history[history_index++], input_buffer.input);
+
     if(strchr(input_buffer.input, '|') != NULL) {
       int num_cmds = 0;
       char **commands = getPipedCommands(input_buffer.input, &num_cmds);
@@ -267,7 +311,8 @@ int main(int argc, char *argv[]) {
     } else {
       processCommands(input_buffer.input, true);
     }
-    printf("$ ");
+    // printf("$ ");
+    free(line);
   }
   return 0;
 }

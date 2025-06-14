@@ -318,3 +318,27 @@ int main(int argc, char *argv[]) {
 //   }
 // }
 // printf("%s: command not found\n", input);
+
+
+
+// int my_up_arrow_handler(int count, int key) {
+//   // move up in history
+//   HIST_ENTRY *entry = previous_history();
+//   if (entry) {
+//     rl_replace_line(entry->line, 1);  // replace current line
+//     rl_point = rl_end;                // move cursor to end
+//   }
+//   return 0;
+// }
+
+// int my_down_arrow_handler(int count, int key) {
+//   // move down in history
+//   HIST_ENTRY *entry = next_history();
+//   if (entry) {
+//     rl_replace_line(entry->line, 1);
+//   } else {
+//     rl_replace_line("", 0);  // clear line if no forward history
+//   }
+//   rl_point = rl_end;
+//   return 0;
+// }
