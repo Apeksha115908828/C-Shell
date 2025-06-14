@@ -8,11 +8,11 @@
 #include <ctype.h>
 
 #define MAX_BUFFER_SIZE 128
-#define NUM_BUILTINS 5
+#define NUM_BUILTINS 6
 #define CMD_PATH_MAX 100
 #define MAX_COMMANDS 100
 
-char *builtins[NUM_BUILTINS] = {"echo", "exit", "type", "pwd", "cd"};
+char *builtins[NUM_BUILTINS] = {"echo", "exit", "type", "pwd", "cd", "history"};
 
 typedef struct {
   char *input;
