@@ -9,7 +9,7 @@
 
 #define MAX_BUFFER_SIZE 128
 #define NUM_BUILTINS 5
-#define PATH_MAX 100
+#define CMD_PATH_MAX 100
 #define MAX_COMMANDS 100
 
 char *builtins[NUM_BUILTINS] = {"echo", "exit", "type", "pwd", "cd"};
@@ -85,7 +85,7 @@ bool process_input(char* input_buffer, char* command) {
     handleType();
     return true;
   } else if(strcmp(command, "pwd") == 0) {
-    char cwd[PATH_MAX];
+    char cwd[CMD_PATH_MAX];
     if(getcwd(cwd, sizeof(cwd)) != NULL) {
       printf("%s\n", cwd);
       return true;
@@ -147,6 +147,11 @@ void processCommands(char *input_buffer, bool toFork) {
     args[0] = command; // First argument is the command itself
     char* token = strtok(NULL, " ");
     while(token != NULL && arg_count < (MAX_BUFFER_SIZE / 2)) {
+      // remove quotes from arguments
+      if ((token[0] == '"' && token[strlen(token) - 1] == '"')) {
+        token[strlen(token) - 1] = '\0'; // remove trailing quote
+        token++;                         // skip leading quote
+      }
       args[arg_count] = token;
       arg_count++;
       token = strtok(NULL, " ");
@@ -173,7 +178,7 @@ void processCommands(char *input_buffer, bool toFork) {
       }
     } else {
       execvp(args[0], args);
-      perror("execvp failed");
+      // perror("execvp failed");
       printf("%s: command not found\n", args[0]);
       exit(EXIT_FAILURE);
     }
@@ -215,11 +220,12 @@ int main(int argc, char *argv[]) {
             close(prev_fd);
           }
           // if not the last command, write to the pipe
-          if(i != num_cmds-1) {
+          if(i < num_cmds-1) {
             dup2(pipefd[1], STDOUT_FILENO);
             close(pipefd[0]);
             close(pipefd[1]);
           }
+          // printf("processing command =%s", commands[i]);
           processCommands(commands[i], false);
           exit(0);  // check if its needed
         }
@@ -227,7 +233,7 @@ int main(int argc, char *argv[]) {
         if(prev_fd != -1) {
           close(prev_fd);
         }
-        if(i != num_cmds-1) {
+        if(i < num_cmds-1) {
           close(pipefd[1]);
           prev_fd = pipefd[0];
         }
@@ -238,7 +244,7 @@ int main(int argc, char *argv[]) {
       }
     } else {
       processCommands(input_buffer.input, true);
-    }    
+    }
     printf("$ ");
   }
   return 0;
