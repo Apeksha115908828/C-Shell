@@ -342,3 +342,68 @@ int main(int argc, char *argv[]) {
 //   rl_point = rl_end;
 //   return 0;
 // }
+
+
+
+// int pipefd[2 * (num_cmds-1)];
+//       //create the necessary pipes, num_cmds-1
+//       for(int i=0; i<num_cmds-1; i++) {
+//         if(pipe(pipefd + i * 2) < 0) {
+//           perror("pipe");
+//           exit(EXIT_FAILURE);
+//         }
+//       }
+//       printf("start loop for calling fork for the piped commands num = %d\n", num_cmds);
+//       // now fork the processes
+//       for(int i=0; i<num_cmds; i++) {
+//         printf("fork count = %d\n", i);
+//         pid_t pid = fork();
+//         if(pid == 0) {
+//           printf("in child process for i=%d\n", i);
+//           // child process
+//           if(i != 0) {
+//             // dup2(pipefd[(i - 1)*2], STDIN_FILENO);
+//             printf("stdin calling dup2 for i = %d\n", i);
+//             if (dup2(pipefd[(i - 1) * 2], STDIN_FILENO) == -1) {
+//               // perror("dup2 stdin");
+//               printf("error in stdin dup2 for i=%d\n", i);
+//               // exit(EXIT_FAILURE);
+//             }
+//             // close(pipefd[(i - 1) * 2]); // close after dup2
+//             printf("dup2 returned for i = %d\n", i);
+//           }
+//           if(i != num_cmds-1) {
+//             printf("stdout calling dup2 for i = %d\n", i);
+//             fflush(stdout);
+//             if (dup2(pipefd[i * 2 + 1], STDOUT_FILENO) == -1) {
+//               perror("dup2 stdout");
+//               printf("error in stdout dup2 for i=%d\n", i);
+//               // exit(EXIT_FAILURE);
+//             }
+//             // close(pipefd[i * 2 + 1]); // close after dup2
+//             printf("dup2 returned for i = %d\n", i);
+//           }
+//           printf("get past the duplication command for i=%d\n", i);
+//           //closing all the pipes
+//           for(int j=0; j<(num_cmds-1)*2; j++) {
+//             if(j != (i * 2 + 1) && j != ((i - 1) * 2)) {
+//               printf("calling close pipe for i=%d j=%d\n", i, j);
+//               close(pipefd[j]);
+//             }
+//             // close(pipefd[j]);
+//           }
+
+//           // call the actual execution with commands[i]
+//           processCommands(commands[i], false);
+//         }
+//       }
+
+//       // closing all the pipes in the parent
+//       for(int i=0; i<(num_cmds-1)*2; i++) {
+//         close(pipefd[i]);
+//       }
+
+//       // wait for all the children
+//       for(int i=0; i<num_cmds; i++) {
+//         wait(NULL);
+//       }

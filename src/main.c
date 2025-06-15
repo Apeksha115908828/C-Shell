@@ -60,7 +60,7 @@ bool search_builtin(const char* command) {
     // Get the next token
     dir = strtok(NULL, ":");
   }
-  free(path_copy);
+  // free(path_copy);
   return found;
 }
 
@@ -96,6 +96,10 @@ bool process_input(char* input_buffer, char* command) {
       }
       last_append_ind = history_index;
       fclose(file);
+      // for(int i=0; i<history_index; i++) {
+      //   free(history[i]);
+      // }
+      // free(history);
     }
     exit(EXIT_SUCCESS);
   } else if(strncmp(command, "echo", 4) == 0) {
@@ -106,7 +110,7 @@ bool process_input(char* input_buffer, char* command) {
       echo_text++;
       char *echo_text_copy = echo_text;
       int count = strlen(echo_text);
-      while(echo_text_copy[count-1] == '\0' || echo_text_copy[count-1] == ' ') {
+      while(echo_text_copy[count-1] == '\0' || echo_text_copy[count-1] == ' ' || echo_text_copy[count-1] == '1') {
         count--;
         echo_text_copy--;
       }
@@ -125,7 +129,10 @@ bool process_input(char* input_buffer, char* command) {
         if(echo_text[j] == '"') {
           count_quotes++;
           if(count_quotes%2 == 0) {
-            while(echo_text[j] != '\0' && echo_text[j] == ' ') j++;
+            while(echo_text[j] != '\0' && echo_text[j] == ' ') {
+              j++;
+            }
+            continue;
           } else {
             echo_text[i] = ' ';
             i++;
@@ -137,6 +144,11 @@ bool process_input(char* input_buffer, char* command) {
         j++;
       }
       echo_text[i] = '\0';
+      i++;
+      while(i<j) {
+        echo_text[i] = '\0';
+        i++;
+      }
     }
     printf("%s\n", echo_text);
     return true;
@@ -207,7 +219,7 @@ bool process_input(char* input_buffer, char* command) {
       while(fgets(line, sizeof(line), file)) {
         // printf("reading line = %s\n", line);
         line[strcspn(line, "\n")] = '\0';
-        history[history_index] = malloc(sizeof(line) * sizeof(char));
+        history[history_index] = malloc(strlen(line) * sizeof(char));
         strcpy(history[history_index], line);
         history_index++;
       }
@@ -324,7 +336,7 @@ void processCommands(char *input_buffer, bool toFork) {
       exit(EXIT_FAILURE);
     }
   }
-  free(input_copy);
+  // free(input_copy);
 }
 
 int hist_cursor = -1;  // -1 means at newest line (empty)
@@ -372,7 +384,6 @@ void restoreStdout() {
 }
 
 int saved_stderr = -1;
-
 void saveStderr() {
   saved_stderr = dup(STDERR_FILENO);
   if (saved_stderr == -1) {
@@ -474,9 +485,11 @@ int main(int argc, char *argv[]) {
       for(int i=0; i<num_cmds; i++) {
         wait(NULL);
       }
+      // for(int i=0; i<num_cmds; i++) {
+      //   free(commands[i]);
+      // }
+      // free(commands);
     } else if(strchr(input_buffer.input, '>') != NULL) {
-      // if(strchr(input_buffer, '>') != NULL) {
-        // char *echo_text = input_buffer + strlen(command);
       int orig_command_len = 0;
       char *input_buffer_copy = input_buffer.input;
       // while (*echo_text == ' ') echo_text++;
@@ -485,23 +498,9 @@ int main(int argc, char *argv[]) {
         next_ptr++;
         orig_command_len++;
       }
-      // input_buffer.input[orig_command_len] = '\0';
-      // printf("command = %s\n", orig);
-      // printf("remaining command = %s\n", next_ptr);
       //double >>
       if(*(next_ptr+1) == '>') {
-        // printf(">>\n");
-        // check for 1>>
         if(*(next_ptr-1) == '1') {
-          // char *orig =malloc(orig_command_len+1 * sizeof(char));
-          // strncpy(orig, input_buffer.input, orig_command_len);
-          // orig[orig_command_len] = '\0';
-          // printf("1>>\n");
-          // while(*next_ptr == '>' || *next_ptr == ' ') next_ptr++;
-          // char *filename = next_ptr;
-          // freopen(filename, "w", stdout);
-          // processCommands(orig, true);
-          // restoreStdout();
           char *orig =malloc(orig_command_len * sizeof(char));
           strncpy(orig, input_buffer.input, orig_command_len-1);
           orig[orig_command_len-1] = '\0';
@@ -511,14 +510,26 @@ int main(int argc, char *argv[]) {
           saveStdout();
           FILE *file = fopen(filename, "a");
           dup2(fileno(file), STDOUT_FILENO);
-          // if(strncmp(orig, "echo", 4) == 0) {
-          //   printf("orig = %s, len = %d\n", orig, strlen(orig));
-          // }
           processCommands(orig, true);
           fclose(file);
           restoreStdout();
+          continue;
+          // free(orig);
+        } if(*(next_ptr-1) == '2') {
+          char *orig =malloc(orig_command_len * sizeof(char));
+          strncpy(orig, input_buffer.input, orig_command_len-1);
+          orig[orig_command_len-1] = '\0';
+          
+          while(*next_ptr == '>' || *next_ptr == ' ') next_ptr++;
+          char *filename = next_ptr;
+          saveStderr();
+          FILE *file = fopen(filename, "a");
+          dup2(fileno(file), STDERR_FILENO);
+          processCommands(orig, true);
+          fclose(file);
+          restoreStderr();
+          free(orig);
         } else {
-          // printf(">>\n");
           char *orig =malloc(orig_command_len+1 * sizeof(char));
           strncpy(orig, input_buffer.input, orig_command_len);
           orig[orig_command_len] = '\0';
@@ -528,12 +539,11 @@ int main(int argc, char *argv[]) {
           saveStdout();
           FILE *file = fopen(filename, "a");
           dup2(fileno(file), STDOUT_FILENO);
-          // printf("orig = %s len(orig) = %d", orig, strlen(orig));
           processCommands(orig, true);
           fclose(file);
           restoreStdout();
+          free(orig);
           // case >>
-
         }
       } else {
         //single >
@@ -551,6 +561,7 @@ int main(int argc, char *argv[]) {
           processCommands(orig, true);
           fclose(file);
           restoreStdout();
+          free(orig);
         } else if(*(next_ptr-1) == '2') {
           // case 2>
           char *orig =malloc(orig_command_len * sizeof(char));
@@ -564,6 +575,8 @@ int main(int argc, char *argv[]) {
           dup2(fileno(file), STDERR_FILENO);
           processCommands(orig, true);
           fclose(file);
+          restoreStderr();
+          free(orig);
         } else {
           char *orig =malloc(orig_command_len+1 * sizeof(char));
           strncpy(orig, input_buffer.input, orig_command_len);
@@ -576,80 +589,15 @@ int main(int argc, char *argv[]) {
           processCommands(orig, true);
           fclose(file);
           restoreStdout();
+          free(orig);
         }
       }
     } else {
       processCommands(input_buffer.input, true);
     }
-    // printf("$ ");
-    if(line != NULL) {
-      free(line);
-    }
-    // free(line);
+    // if(line != NULL) {
+    //   free(line);
+    // }
   }
   return 0;
 }
-
-
-// int pipefd[2 * (num_cmds-1)];
-//       //create the necessary pipes, num_cmds-1
-//       for(int i=0; i<num_cmds-1; i++) {
-//         if(pipe(pipefd + i * 2) < 0) {
-//           perror("pipe");
-//           exit(EXIT_FAILURE);
-//         }
-//       }
-//       printf("start loop for calling fork for the piped commands num = %d\n", num_cmds);
-//       // now fork the processes
-//       for(int i=0; i<num_cmds; i++) {
-//         printf("fork count = %d\n", i);
-//         pid_t pid = fork();
-//         if(pid == 0) {
-//           printf("in child process for i=%d\n", i);
-//           // child process
-//           if(i != 0) {
-//             // dup2(pipefd[(i - 1)*2], STDIN_FILENO);
-//             printf("stdin calling dup2 for i = %d\n", i);
-//             if (dup2(pipefd[(i - 1) * 2], STDIN_FILENO) == -1) {
-//               // perror("dup2 stdin");
-//               printf("error in stdin dup2 for i=%d\n", i);
-//               // exit(EXIT_FAILURE);
-//             }
-//             // close(pipefd[(i - 1) * 2]); // close after dup2
-//             printf("dup2 returned for i = %d\n", i);
-//           }
-//           if(i != num_cmds-1) {
-//             printf("stdout calling dup2 for i = %d\n", i);
-//             fflush(stdout);
-//             if (dup2(pipefd[i * 2 + 1], STDOUT_FILENO) == -1) {
-//               perror("dup2 stdout");
-//               printf("error in stdout dup2 for i=%d\n", i);
-//               // exit(EXIT_FAILURE);
-//             }
-//             // close(pipefd[i * 2 + 1]); // close after dup2
-//             printf("dup2 returned for i = %d\n", i);
-//           }
-//           printf("get past the duplication command for i=%d\n", i);
-//           //closing all the pipes
-//           for(int j=0; j<(num_cmds-1)*2; j++) {
-//             if(j != (i * 2 + 1) && j != ((i - 1) * 2)) {
-//               printf("calling close pipe for i=%d j=%d\n", i, j);
-//               close(pipefd[j]);
-//             }
-//             // close(pipefd[j]);
-//           }
-
-//           // call the actual execution with commands[i]
-//           processCommands(commands[i], false);
-//         }
-//       }
-
-//       // closing all the pipes in the parent
-//       for(int i=0; i<(num_cmds-1)*2; i++) {
-//         close(pipefd[i]);
-//       }
-
-//       // wait for all the children
-//       for(int i=0; i<num_cmds; i++) {
-//         wait(NULL);
-//       }
