@@ -105,18 +105,39 @@ bool process_input(char* input_buffer, char* command) {
     if(*echo_text == '\'') {
       echo_text++;
       char *echo_text_copy = echo_text;
-      int count = 0;
-      while(*echo_text_copy != '\0') {
-        echo_text_copy++;
-        count++;
-      }
-      while(*echo_text_copy == '\0' || *echo_text_copy == ' ') {
+      int count = strlen(echo_text);
+      while(echo_text_copy[count-1] == '\0' || echo_text_copy[count-1] == ' ') {
         count--;
         echo_text_copy--;
       }
-      echo_text[count] = '\0';
+      echo_text[count-1] = '\0';
     }
     // handle "abc"
+    if(*echo_text == '"') {
+      int i=0, j=1;
+      int count_quotes = 1;
+      // char *echo_text_copy = echo_text;
+      // remove front spaces
+      // while(echo_text[j] == ' ') {
+      //   j++;
+      // }
+      while(echo_text[j] != '\0') {
+        if(echo_text[j] == '"') {
+          count_quotes++;
+          if(count_quotes%2 == 0) {
+            while(echo_text[j] != '\0' && echo_text[j] == ' ') j++;
+          } else {
+            echo_text[i] = ' ';
+            i++;
+          }
+        } else {
+          echo_text[i] = echo_text[j];
+          i++;
+        }
+        j++;
+      }
+      echo_text[i] = '\0';
+    }
     printf("%s\n", echo_text);
     return true;
   } else if(strncmp(command, "type", 4) == 0) {
@@ -469,36 +490,55 @@ int main(int argc, char *argv[]) {
       // printf("remaining command = %s\n", next_ptr);
       //double >>
       if(*(next_ptr+1) == '>') {
-        printf(">>\n");
+        // printf(">>\n");
         // check for 1>>
         if(*(next_ptr-1) == '1') {
+          // char *orig =malloc(orig_command_len+1 * sizeof(char));
+          // strncpy(orig, input_buffer.input, orig_command_len);
+          // orig[orig_command_len] = '\0';
+          // printf("1>>\n");
+          // while(*next_ptr == '>' || *next_ptr == ' ') next_ptr++;
+          // char *filename = next_ptr;
+          // freopen(filename, "w", stdout);
+          // processCommands(orig, true);
+          // restoreStdout();
+          char *orig =malloc(orig_command_len * sizeof(char));
+          strncpy(orig, input_buffer.input, orig_command_len-1);
+          orig[orig_command_len-1] = '\0';
+          
+          while(*next_ptr == '>' || *next_ptr == ' ') next_ptr++;
+          char *filename = next_ptr;
+          saveStdout();
+          FILE *file = fopen(filename, "a");
+          dup2(fileno(file), STDOUT_FILENO);
+          // if(strncmp(orig, "echo", 4) == 0) {
+          //   printf("orig = %s, len = %d\n", orig, strlen(orig));
+          // }
+          processCommands(orig, true);
+          fclose(file);
+          restoreStdout();
+        } else {
+          // printf(">>\n");
           char *orig =malloc(orig_command_len+1 * sizeof(char));
           strncpy(orig, input_buffer.input, orig_command_len);
           orig[orig_command_len] = '\0';
-          printf("1>>\n");
+          
           while(*next_ptr == '>' || *next_ptr == ' ') next_ptr++;
           char *filename = next_ptr;
-          freopen(filename, "w", stdout);
+          saveStdout();
+          FILE *file = fopen(filename, "a");
+          dup2(fileno(file), STDOUT_FILENO);
+          // printf("orig = %s len(orig) = %d", orig, strlen(orig));
           processCommands(orig, true);
+          fclose(file);
           restoreStdout();
-          // FILE *file = fopen(filename, "a");
-          // fprintf(file, echo_text);
-          // fclose(file);
-        } else {
-          printf(">>\n");
           // case >>
 
         }
       } else {
         //single >
         if(*(next_ptr-1) == '1') {
-          // printf("1>\n");
-          // // case 1>
-          // while(*next_ptr == '>' || *next_ptr == ' ') next_ptr++;
-          // char *filename = next_ptr;
-          // freopen(filename, "w", stdout);
-          // processCommands(orig, true);
-          // restoreStdout();
+          // case 1>
           char *orig =malloc(orig_command_len * sizeof(char));
           strncpy(orig, input_buffer.input, orig_command_len-1);
           orig[orig_command_len-1] = '\0';
@@ -512,7 +552,7 @@ int main(int argc, char *argv[]) {
           fclose(file);
           restoreStdout();
         } else if(*(next_ptr-1) == '2') {
-          // printf("2>\n");
+          // case 2>
           char *orig =malloc(orig_command_len * sizeof(char));
           strncpy(orig, input_buffer.input, orig_command_len-1);
           orig[orig_command_len-1] = '\0';
@@ -521,13 +561,9 @@ int main(int argc, char *argv[]) {
           char *filename = next_ptr;
           saveStderr();
           FILE *file = fopen(filename, "w");
-          // dup2(fileno(file), STDOUT_FILENO);
           dup2(fileno(file), STDERR_FILENO);
           processCommands(orig, true);
           fclose(file);
-          // restoreStdout();
-          restoreStderr();
-          // case 2>
         } else {
           char *orig =malloc(orig_command_len+1 * sizeof(char));
           strncpy(orig, input_buffer.input, orig_command_len);
