@@ -112,16 +112,81 @@ bool process_input(char* input_buffer, char* command) {
     }
     return true;
   } else if(strncmp(command, "history", 7) == 0) {
-    char *path = strtok(NULL, "");
-    if(path == NULL) {
+    // check for the read from file
+    char *args[MAX_BUFFER_SIZE / 2 + 1];    // considering string/argument length atleast 2 characters
+    int arg_count = 1;
+    args[0] = command; // First argument is the command itself
+    char* token = strtok(NULL, " ");
+    while(token != NULL && arg_count < (MAX_BUFFER_SIZE / 2)) {
+      // remove quotes from arguments
+      if ((token[0] == '"' && token[strlen(token) - 1] == '"')) {
+        token[strlen(token) - 1] = '\0'; // remove trailing quote
+        token++;                         // skip leading quote
+      }
+      args[arg_count] = token;
+      arg_count++;
+      token = strtok(NULL, " ");
+    }
+    if(arg_count <= 2) {
+      // not reading from file
+      char *count = NULL;
+      if(arg_count > 1) {
+        count = args[1];
+      }
+      if(count == NULL) {
+        for(int i=0; i<history_index; i++) {
+          printf("%d %s\n", i+1, history[i]);
+        }
+      } else {
+        int num_hist = atoi(count);
+        for(int i=max(history_index - num_hist, 0); i<history_index; i++) {
+          printf("%d %s\n", i+1, history[i]);
+        }
+      }
+      return true;
+    }
+    
+    if(strncmp(args[1], "-r", 2) == 0) {
+      // read from the file
+      FILE *file = fopen(args[2], "r");
+      if(file == NULL) {
+        printf("errored while openeing th efile");
+        perror("error opening the file");
+        return true;
+      }
+      char line[100];
+      while(fgets(line, sizeof(line), file)) {
+        // printf("reading line = %s\n", line);
+        line[strcspn(line, "\n")] = '\0';
+        history[history_index] = malloc(sizeof(line) * sizeof(char));
+        strcpy(history[history_index], line);
+        history_index++;
+      }
+      // printf("read from the file");
+      fclose(file);
+    } else if(strncmp(args[1], "-w", 2) == 0) {
+      // write to the file
+      FILE *file = fopen(args[2], "w");
+      if(file == NULL) {
+        perror("error opening the file");
+        return true;
+      }
+      // char line[100];
       for(int i=0; i<history_index; i++) {
-        printf("%d %s\n", i+1, history[i]);
+        fputs(history[i], file);
       }
-    } else {
-      int num_hist = atoi(path);
-      for(int i=max(history_index - num_hist, 0); i<history_index; i++) {
-        printf("%d %s\n", i+1, history[i]);
+      fclose(file);
+    } else if(strncmp(args[1], "-a", 2) == 0) {
+      // append to the file
+      FILE *file = fopen(args[2], "a");
+      if(file == NULL) {
+        perror("error opening the file");
+        return true;
       }
+      for(int i=0; i<history_index; i++) {
+        fputs(history[i], file);
+      }
+      fclose(file);
     }
     return true;
   }
