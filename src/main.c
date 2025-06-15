@@ -336,6 +336,7 @@ int main(int argc, char *argv[]) {
       strcpy(history[history_index], line);
       history_index++;
     }
+    last_append_ind = history_index;
     // printf("read from the file");
     fclose(file);
   }
