@@ -21,6 +21,7 @@
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
 int history_index = 0;
+int last_append_ind = 0;
 char *builtins[NUM_BUILTINS] = {"echo", "exit", "type", "pwd", "cd", "history"};
 char **history;
 
@@ -184,10 +185,12 @@ bool process_input(char* input_buffer, char* command) {
         perror("error opening the file");
         return true;
       }
-      for(int i=0; i<history_index; i++) {
+      for(int i=min(last_append_ind, history_index-1); i<history_index; i++) {
+      // for(int i=0; i<history_index; i++) {
         fputs(history[i], file);
         fputs("\n", file);
       }
+      last_append_ind = history_index;
       fclose(file);
     }
     return true;
