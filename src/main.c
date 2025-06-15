@@ -349,6 +349,23 @@ void restoreStdout() {
     saved_stdout = -1;
   }
 }
+
+int saved_stderr = -1;
+
+void saveStderr() {
+  saved_stderr = dup(STDERR_FILENO);
+  if (saved_stderr == -1) {
+    perror("dup");
+  }
+}
+
+void restoreStderr() {
+  if (saved_stderr != -1) {
+    dup2(saved_stderr, STDERR_FILENO);
+    close(saved_stderr);
+    saved_stderr = -1;
+  }
+}
 // void restoreStdout() { freopen("/dev/tty", "w", stdout); }
 int main(int argc, char *argv[]) {
   // Flush after every printf
@@ -495,7 +512,21 @@ int main(int argc, char *argv[]) {
           fclose(file);
           restoreStdout();
         } else if(*(next_ptr-1) == '2') {
-          printf("2>\n");
+          // printf("2>\n");
+          char *orig =malloc(orig_command_len * sizeof(char));
+          strncpy(orig, input_buffer.input, orig_command_len-1);
+          orig[orig_command_len-1] = '\0';
+          
+          while(*next_ptr == '>' || *next_ptr == ' ') next_ptr++;
+          char *filename = next_ptr;
+          saveStderr();
+          FILE *file = fopen(filename, "w");
+          // dup2(fileno(file), STDOUT_FILENO);
+          dup2(fileno(file), STDERR_FILENO);
+          processCommands(orig, true);
+          fclose(file);
+          // restoreStdout();
+          restoreStderr();
           // case 2>
         } else {
           char *orig =malloc(orig_command_len+1 * sizeof(char));
