@@ -2,6 +2,7 @@
   "files.associations": {
     "*.da": "python",
     "__locale": "c",
-    "bitset": "c"
+    "bitset": "c",
+    "unordered_map": "c"
   }
 }

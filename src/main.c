@@ -101,6 +101,22 @@ bool process_input(char* input_buffer, char* command) {
   } else if(strncmp(command, "echo", 4) == 0) {
     char *echo_text = input_buffer + strlen(command);
     while (*echo_text == ' ') echo_text++;
+    // handle 'abc'
+    if(*echo_text == '\'') {
+      echo_text++;
+      char *echo_text_copy = echo_text;
+      int count = 0;
+      while(*echo_text_copy != '\0') {
+        echo_text_copy++;
+        count++;
+      }
+      while(*echo_text_copy == '\0' || *echo_text_copy == ' ') {
+        count--;
+        echo_text_copy--;
+      }
+      echo_text[count] = '\0';
+    }
+    // handle "abc"
     printf("%s\n", echo_text);
     return true;
   } else if(strncmp(command, "type", 4) == 0) {
@@ -318,7 +334,22 @@ int my_down_arrow_handler(int count, int key) {
   rl_point = rl_end;
   return 0;
 }
+int saved_stdout = -1;
+void saveStdout() {
+  saved_stdout = dup(STDOUT_FILENO);
+  if (saved_stdout == -1) {
+    perror("dup");
+  }
+}
 
+void restoreStdout() {
+  if (saved_stdout != -1) {
+    dup2(saved_stdout, STDOUT_FILENO);
+    close(saved_stdout);
+    saved_stdout = -1;
+  }
+}
+// void restoreStdout() { freopen("/dev/tty", "w", stdout); }
 int main(int argc, char *argv[]) {
   // Flush after every printf
   setbuf(stdout, NULL);
@@ -404,6 +435,81 @@ int main(int argc, char *argv[]) {
       // wait for all the children
       for(int i=0; i<num_cmds; i++) {
         wait(NULL);
+      }
+    } else if(strchr(input_buffer.input, '>') != NULL) {
+      // if(strchr(input_buffer, '>') != NULL) {
+        // char *echo_text = input_buffer + strlen(command);
+      int orig_command_len = 0;
+      char *input_buffer_copy = input_buffer.input;
+      // while (*echo_text == ' ') echo_text++;
+      char *next_ptr = input_buffer_copy;
+      while (*next_ptr != '>') {
+        next_ptr++;
+        orig_command_len++;
+      }
+      // input_buffer.input[orig_command_len] = '\0';
+      // printf("command = %s\n", orig);
+      // printf("remaining command = %s\n", next_ptr);
+      //double >>
+      if(*(next_ptr+1) == '>') {
+        printf(">>\n");
+        // check for 1>>
+        if(*(next_ptr-1) == '1') {
+          char *orig =malloc(orig_command_len+1 * sizeof(char));
+          strncpy(orig, input_buffer.input, orig_command_len);
+          orig[orig_command_len] = '\0';
+          printf("1>>\n");
+          while(*next_ptr == '>' || *next_ptr == ' ') next_ptr++;
+          char *filename = next_ptr;
+          freopen(filename, "w", stdout);
+          processCommands(orig, true);
+          restoreStdout();
+          // FILE *file = fopen(filename, "a");
+          // fprintf(file, echo_text);
+          // fclose(file);
+        } else {
+          printf(">>\n");
+          // case >>
+
+        }
+      } else {
+        //single >
+        if(*(next_ptr-1) == '1') {
+          // printf("1>\n");
+          // // case 1>
+          // while(*next_ptr == '>' || *next_ptr == ' ') next_ptr++;
+          // char *filename = next_ptr;
+          // freopen(filename, "w", stdout);
+          // processCommands(orig, true);
+          // restoreStdout();
+          char *orig =malloc(orig_command_len * sizeof(char));
+          strncpy(orig, input_buffer.input, orig_command_len-1);
+          orig[orig_command_len-1] = '\0';
+          
+          while(*next_ptr == '>' || *next_ptr == ' ') next_ptr++;
+          char *filename = next_ptr;
+          saveStdout();
+          FILE *file = fopen(filename, "w");
+          dup2(fileno(file), STDOUT_FILENO);
+          processCommands(orig, true);
+          fclose(file);
+          restoreStdout();
+        } else if(*(next_ptr-1) == '2') {
+          printf("2>\n");
+          // case 2>
+        } else {
+          char *orig =malloc(orig_command_len+1 * sizeof(char));
+          strncpy(orig, input_buffer.input, orig_command_len);
+          orig[orig_command_len] = '\0';
+          while(*next_ptr == '>' || *next_ptr == ' ') next_ptr++;
+          char *filename = next_ptr;
+          saveStdout();
+          FILE *file = fopen(filename, "w");
+          dup2(fileno(file), STDOUT_FILENO);
+          processCommands(orig, true);
+          fclose(file);
+          restoreStdout();
+        }
       }
     } else {
       processCommands(input_buffer.input, true);
