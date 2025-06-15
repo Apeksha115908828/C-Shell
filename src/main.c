@@ -88,17 +88,15 @@ bool process_input(char* input_buffer, char* command) {
   if(strncmp(command, "exit", 4) == 0) {
     char *path = getenv("HISTFILE");
     FILE *file = fopen(path, "a");
-    if(file == NULL) {
-      perror("error opening the file");
-      return true;
+    if(file != NULL) {
+      for(int i=min(last_append_ind, history_index-1); i<history_index; i++) {
+      // for(int i=0; i<history_index; i++) {
+        fputs(history[i], file);
+        fputs("\n", file);
+      }
+      last_append_ind = history_index;
+      fclose(file);
     }
-    for(int i=min(last_append_ind, history_index-1); i<history_index; i++) {
-    // for(int i=0; i<history_index; i++) {
-      fputs(history[i], file);
-      fputs("\n", file);
-    }
-    last_append_ind = history_index;
-    fclose(file);
     exit(EXIT_SUCCESS);
   } else if(strncmp(command, "echo", 4) == 0) {
     char *echo_text = input_buffer + strlen(command);
@@ -329,21 +327,19 @@ int main(int argc, char *argv[]) {
   history = malloc(MAX_HISTORY_COMMANDS * sizeof(char*));
   char *path = getenv("HISTFILE");
   FILE *file = fopen(path, "r");
-  if(file == NULL) {
-    printf("errored while openeing th efile");
-    perror("error opening the file");
-    return true;
+  if(file != NULL) {
+    char line[100];
+    while(fgets(line, sizeof(line), file)) {
+      // printf("reading line = %s\n", line);
+      line[strcspn(line, "\n")] = '\0';
+      history[history_index] = malloc(sizeof(line) * sizeof(char));
+      strcpy(history[history_index], line);
+      history_index++;
+    }
+    // printf("read from the file");
+    fclose(file);
   }
-  char line[100];
-  while(fgets(line, sizeof(line), file)) {
-    // printf("reading line = %s\n", line);
-    line[strcspn(line, "\n")] = '\0';
-    history[history_index] = malloc(sizeof(line) * sizeof(char));
-    strcpy(history[history_index], line);
-    history_index++;
-  }
-  // printf("read from the file");
-  fclose(file);
+  
 
   // Uncomment this block to pass the first stage
   // printf("$ ");
