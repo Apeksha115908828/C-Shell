@@ -174,6 +174,7 @@ bool process_input(char* input_buffer, char* command) {
       // char line[100];
       for(int i=0; i<history_index; i++) {
         fputs(history[i], file);
+        fputs("\n", file);
       }
       fclose(file);
     } else if(strncmp(args[1], "-a", 2) == 0) {
@@ -185,6 +186,7 @@ bool process_input(char* input_buffer, char* command) {
       }
       for(int i=0; i<history_index; i++) {
         fputs(history[i], file);
+        fputs("\n", file);
       }
       fclose(file);
     }
