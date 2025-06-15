@@ -382,6 +382,9 @@ int main(int argc, char *argv[]) {
       processCommands(input_buffer.input, true);
     }
     // printf("$ ");
+    if(line != NULL) {
+      free(line);
+    }
     // free(line);
   }
   return 0;
