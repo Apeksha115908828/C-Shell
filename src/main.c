@@ -105,6 +105,43 @@ bool process_input(char* input_buffer, char* command) {
   } else if(strncmp(command, "echo", 4) == 0) {
     char *echo_text = input_buffer + strlen(command);
     while (*echo_text == ' ') echo_text++;
+    if(strchr(echo_text, '\'') == NULL && strchr(echo_text, '"') == NULL) {
+      // char* token = strtok(echo_text, " ");
+      bool first = true;
+      while(*echo_text != '\0') {
+        if(*echo_text == ' ') {
+          if(!first) {
+            printf(" ");
+          }
+          first = false;
+          while(*echo_text != '\0' && *echo_text == ' ') {
+            echo_text++;
+          }
+          while(*echo_text != '\0' && *echo_text != ' ') {
+            printf("%c", *echo_text);
+            echo_text++;
+          }
+        } else {
+          if(!first) {
+            printf(" ");
+          }
+          first = false;
+          while(*echo_text != '\0' && *echo_text != ' ') {
+            printf("%c", *echo_text);
+            echo_text++;
+          }
+        }
+        // remove quotes from arguments
+        // if(!first) {
+        //   printf(" ");
+        // }
+        // first = false;
+        // printf(token);
+        // token = strtok(NULL, " ");
+      }
+      printf("\n");
+      return true;
+    }
     // handle 'abc'
     if(*echo_text == '\'') {
       echo_text++;

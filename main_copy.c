@@ -407,3 +407,152 @@ int main(int argc, char *argv[]) {
 //       for(int i=0; i<num_cmds; i++) {
 //         wait(NULL);
 //       }
+
+
+char **tokenize_echo_args(const char *input_line, int *argc_out) {
+  char **tokens = malloc(sizeof(char*) * MAX_BUFFER_SIZE);
+  int token_index = 0;
+
+  const char *p = input_line;
+  char buffer[1024];
+  int buf_index = 0;
+  bool in_single = false, in_double = false;
+
+  while (*p) {
+    char c = *p;
+    if (in_single) {
+      if (c == '\'' && *(p+1) == '\'') {
+        buffer[buf_index++] = '\'';
+        p++;
+      } else if (c == '\\' && *(p+1) == '\'') {
+        buffer[buf_index++] = '\'';
+        p++;
+      } else if (c == '\'') {
+        in_single = false;
+      } else {
+        buffer[buf_index++] = c;
+      }
+    } else if (in_double) {
+      if (c == '\\') {
+        p++;
+        if (*p == '$' || *p == '`' || *p == '"' || *p == '\\' || *p == '\n') {
+          buffer[buf_index++] = *p;
+        } else {
+          buffer[buf_index++] = '\\';
+          buffer[buf_index++] = *p;
+        }
+      } else if (c == '"') {
+        in_double = false;
+      } else {
+        buffer[buf_index++] = c;
+      }
+    } else {
+      if (c == '\'') {
+        in_single = true;
+      } else if (c == '"') {
+        in_double = true;
+      } else if (c == '\\') {
+        p++;
+        if (*p) buffer[buf_index++] = *p;
+      } else if (isspace(c)) {
+        if (buf_index > 0) {
+          buffer[buf_index] = '\0';
+          tokens[token_index++] = strdup(buffer);
+          buf_index = 0;
+        }
+      } else {
+        buffer[buf_index++] = c;
+      }
+    }
+    p++;
+  }
+  if (buf_index > 0) {
+    buffer[buf_index] = '\0';
+    tokens[token_index++] = strdup(buffer);
+  }
+
+  tokens[token_index] = NULL;
+  *argc_out = token_index;
+  return tokens;
+}
+
+
+
+another impelementation for quotes:
+
+int argc;
+    char **argv = tokenize_echo_args(echo_text, &argc);
+    for (int i = 0; i < argc; i++) {
+      if (i > 0) printf(" ");
+      printf("%s", argv[i]);
+      free(argv[i]);
+    }
+    free(argv);
+    printf("\n");
+    return true;
+
+-- in the process_input funcxtion
+
+
+char **tokenize_echo_args(const char *input_line, int *argc_out) {
+    char **tokens = malloc(sizeof(char*) * MAX_BUFFER_SIZE);
+    int token_index = 0;
+
+    const char *p = input_line;
+    char buffer[1024];
+    int buf_index = 0;
+    bool in_single = false, in_double = false;
+
+    while (*p) {
+        char c = *p;
+
+        if (in_single) {
+            if (c == '\'') {
+                in_single = false;
+            } else {
+                buffer[buf_index++] = c;
+            }
+        } else if (in_double) {
+            if (c == '\\') {
+                p++;
+                if (*p == '$' || *p == '`' || *p == '"' || *p == '\\' || *p == '\n') {
+                    buffer[buf_index++] = *p;
+                } else {
+                    buffer[buf_index++] = '\\';
+                    buffer[buf_index++] = *p;
+                }
+            } else if (c == '"') {
+                in_double = false;
+            } else {
+                buffer[buf_index++] = c;
+            }
+        } else {
+            if (c == '\'') {
+                in_single = true;
+            } else if (c == '"') {
+                in_double = true;
+            } else if (c == '\\') {
+                p++;
+                if (*p) buffer[buf_index++] = *p;
+            } else if (isspace(c)) {
+                if (buf_index > 0) {
+                    buffer[buf_index] = '\0';
+                    tokens[token_index++] = strdup(buffer);
+                    buf_index = 0;
+                }
+            } else {
+                buffer[buf_index++] = c;
+            }
+        }
+        p++;
+    }
+
+    if (buf_index > 0) {
+        buffer[buf_index] = '\0';
+        tokens[token_index++] = strdup(buffer);
+    }
+
+    tokens[token_index] = NULL;
+    *argc_out = token_index;
+    return tokens;
+}
