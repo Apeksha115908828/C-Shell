@@ -408,6 +408,8 @@ int my_tab_handler(int count, int key) {
     }
   }
   rl_point = rl_end;
+  char bell_char = '\x07';
+  printf("%c", bell_char);
   return 0;
 }
 
