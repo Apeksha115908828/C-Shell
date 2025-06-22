@@ -391,6 +391,26 @@ int my_up_arrow_handler(int count, int key) {
   return 0;
 }
 
+int my_tab_handler(int count, int key) {
+  if(count == 1) {
+    const char* curr = rl_line_buffer;
+    int curr_len = strlen(rl_line_buffer);
+    for(int i=0; i<NUM_BUILTINS; i++) {
+      if(strlen(builtins[i]) > curr_len && strncmp(builtins[i], curr, strlen(curr)) == 0) {
+        const char* new_char = " ";
+        char *new_val = malloc(sizeof(char) * (strlen(builtins[i]) + 5));
+        strcpy(new_val, builtins[i]);
+        strcat(new_val, new_char);
+        rl_replace_line(new_val, 1);
+        rl_point = rl_end;
+        return 0;
+      }
+    }
+  }
+  rl_point = rl_end;
+  return 0;
+}
+
 int my_down_arrow_handler(int count, int key) {
   if (hist_cursor == -1) return 0;
 
@@ -466,6 +486,7 @@ int main(int argc, char *argv[]) {
   char input[100];
   rl_bind_keyseq("\\e[A", my_up_arrow_handler);
   rl_bind_keyseq("\\e[B", my_down_arrow_handler);
+  rl_bind_keyseq("\t", my_tab_handler);
   while(1) {
     InputBuffer input_buffer = CreateInputBuffer();
     // fgets(input_buffer.input, MAX_BUFFER_SIZE, stdin);
