@@ -6,7 +6,7 @@
 // #include <sys/types.h>
 #include <sys/wait.h>
 #include <ctype.h>
-
+#include <dirent.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 // #include <readline/keymaps.h>
@@ -390,7 +390,38 @@ int my_up_arrow_handler(int count, int key) {
   rl_point = rl_end;
   return 0;
 }
+bool check_builtins(const char* curr, const char* path) {
+  int curr_len = strlen(curr);
+  DIR *dir;
+  struct dirent *entry;
+  dir = opendir(path);
+  if (dir == NULL) {
+    printf("%s: error opening dir at %s\n", dir, path);
+    // perror("Error opening directory");
+    return false; // Or handle the error appropriately
+  }
 
+  while ((entry = readdir(dir)) != NULL) {
+    // Skip "." and ".." entries, which represent the current and parent directories
+    // if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+    //   continue;
+    // }
+    // printf(entry->d_name);
+    if(strlen(entry->d_name) > curr_len && strncmp(entry->d_name, curr, strlen(curr)) == 0) {
+      char *new_val = malloc(sizeof(char) * (strlen(entry->d_name) + 1));
+      strcpy(new_val, entry->d_name);
+      const char* new_char = " ";
+      strcat(new_val, new_char);
+      rl_replace_line(new_val, 1);
+      // rl_replace_line(entry->d_name, 1);
+      rl_point = rl_end;
+      free(new_val);
+      return true;
+    }
+  }
+  // // free(path_copy);
+  return false;
+}
 int my_tab_handler(int count, int key) {
   if(count == 1) {
     const char* curr = rl_line_buffer;
@@ -398,15 +429,32 @@ int my_tab_handler(int count, int key) {
     for(int i=0; i<NUM_BUILTINS; i++) {
       if(strlen(builtins[i]) > curr_len && strncmp(builtins[i], curr, strlen(curr)) == 0) {
         const char* new_char = " ";
-        char *new_val = malloc(sizeof(char) * (strlen(builtins[i]) + 5));
+        char *new_val = malloc(sizeof(char) * (strlen(builtins[i]) + 1));
         strcpy(new_val, builtins[i]);
         strcat(new_val, new_char);
         rl_replace_line(new_val, 1);
         rl_point = rl_end;
+        free(new_val);
         return 0;
       }
     }
+    
+    char *path = getenv("PATH");
+    if (path == NULL) {
+      printf("%s: not found\n", curr);
+      return 0;
+    }
+    char* token = strtok(path, ":");
+    bool found = false;
+    while(!found && token != NULL) {
+      found = check_builtins(curr, token);
+      token = strtok(NULL, ":");
+    }
+    if(found) {
+      return 0;
+    }
   }
+  
   rl_point = rl_end;
   char bell_char = '\x07';
   printf("%c", bell_char);
@@ -573,6 +621,7 @@ int main(int argc, char *argv[]) {
           processCommands(orig, true);
           fclose(file);
           restoreStdout();
+          free(orig);
           continue;
           // free(orig);
         } if(*(next_ptr-1) == '2') {
